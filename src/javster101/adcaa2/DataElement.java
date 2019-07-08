@@ -2,12 +2,17 @@ package javster101.adcaa2;
 
 import com.opengg.core.math.FastMath;
 import com.opengg.core.math.Quaternionf;
+import com.opengg.core.math.Vector3big;
 import com.opengg.core.math.Vector3f;
+import javster101.adcaa2.components.FlightManager;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class DataElement {
     public Part part;
 
-    public float altitude, latitude, longitude;
+    public double altitude, latitude, longitude;
     public Quaternionf rotation;
 
     public DataElement(Part part){
@@ -31,22 +36,26 @@ public class DataElement {
 
     public static DataElement interpolate(DataElement d1, DataElement d2, float amount){
         var newE = new DataElement(d1.part);
+        newE.rotation = d1.rotation;
+        newE.longitude = d1.longitude + ((d2.longitude-d1.longitude)*amount);
+        newE.latitude = d1.latitude + ((d2.latitude-d1.latitude)*amount);
+        newE.altitude = d1.altitude + ((d2.altitude-d1.altitude)*amount);
 
-        if(Float.isNaN(amount))
-            amount = 0;
-
-        newE.altitude = FastMath.lerp(d1.altitude, d2.altitude, amount);
-        newE.latitude = FastMath.lerpAngle(d1.latitude, d2.latitude, amount);
-        newE.longitude = FastMath.lerpAngle(d1.longitude, d2.longitude, amount);
-        newE.rotation = Quaternionf.slerp(d1.rotation, d2.rotation, amount);
 
         return newE;
     }
     
-    public Vector3f toPosition(){
-        var x = FastMath.cos(latitude) * FastMath.cos(longitude);
-        var z = FastMath.cos(latitude) * FastMath.sin(longitude);
-        var y = FastMath.sin(latitude);
-        return new Vector3f(x, y, z).multiply(6_371_000 + (altitude * 0.3048f)).multiply(0.01f);
+    public Vector3big toPosition(){
+        var direction = new Quaternionf(new Vector3f(0, (float) (-longitude) * FastMath.radiansToDegrees, (float) latitude * FastMath.radiansToDegrees)).divide(FlightManager.currentManager.naturalRotation).transform(new Vector3f(0,0,1));
+        var realAlt = new BigDecimal(6_371_000).add(new BigDecimal(altitude).multiply(new BigDecimal(0.3048)));
+        var result = new Vector3big(direction).multiply(realAlt.multiply(new BigDecimal(FlightManager.scaleMultiplier)));
+        /*
+        System.out.println();
+        System.out.println(altitude);
+        System.out.println(new BigDecimal(altitude).multiply(new BigDecimal(0.3048)));
+        System.out.println(realAlt);
+        System.out.println(result.length().divide(new BigDecimal(FlightManager.scaleMultiplier), RoundingMode.HALF_DOWN));
+        System.out.println(realAlt.subtract(result.length().divide(new BigDecimal(FlightManager.scaleMultiplier), RoundingMode.HALF_DOWN)));
+        */return result;
     }
 }
