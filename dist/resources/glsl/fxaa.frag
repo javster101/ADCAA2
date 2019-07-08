@@ -89,7 +89,7 @@ void main() {
 	}
 	else
 	{
-		// ... no, so use four samples. 
+		// ... no, so use four samples.
 		fcolor = vec4(rgbFourTab, 1.0);
 	}
 
